@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EJCETICA | Duelo de Ética y Paz</title>
+<meta name="description" content="Duelos 1 vs 1 por equipos con preguntas abiertas de ética y paz.">
+<link rel="stylesheet" href="styles.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fraunces:opsz,ital,wght@9..144,0,700;9..144,1,700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<header class="nav">
+  <div class="wrap nav-inner">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 32 32" width="30" height="30"><circle cx="16" cy="16" r="13" fill="none" stroke="#fff" stroke-width="2.5"/><path d="M16 3a13 13 0 0 1 0 26" fill="none" stroke="#fff" stroke-width="2.5" opacity=".45"/><circle cx="16" cy="10.5" r="2.2" fill="#fff"/><circle cx="16" cy="21.5" r="2.2" fill="#fff" opacity=".45"/></svg></span>
+    </div>
+    <nav class="menu">
+      <button class="menu-btn active" data-view="duelo" onclick="showView('duelo')">Duelo</button>
+      <button class="menu-btn" data-view="equipos" onclick="showView('equipos')">Equipos</button>
+      <button class="menu-btn" data-view="preguntas" onclick="showView('preguntas')">Preguntas</button>
+    </nav>
+  </div>
+</header>
+
+<main>
+<!-- VISTA 1: DUELO -->
+<section id="view-duelo" class="view wrap">
+  <div class="card compete duel-only">
+    <div class="compete-grid duel-grid">
+      <label>Equipo 1
+        <select id="selA"></select>
+      </label>
+      <span class="vs-big">VS</span>
+      <label>Equipo 2
+        <select id="selB"></select>
+      </label>
+    </div>
+    <div class="compete-actions">
+      <button class="btn btn-primary" onclick="startMatch()">Iniciar duelo</button>
+      <button class="btn btn-ghost" onclick="randomTeams()">Equipos al azar</button>
+      <button class="btn btn-ghost" onclick="resetData()">Restablecer datos</button>
+    </div>
+    <div class="setup-row">
+      <label class="amount">Cantidad de preguntas — vidas por equipo
+        <input id="qAmount" type="number" value="5" min="1" max="20" step="1">
+      </label>
+      <label class="amount">Tiempo por turno (segundos)
+        <input id="qTime" type="number" value="30" min="5" max="120" step="1">
+      </label>
+    </div>
+    <p class="muted" id="compMsg"></p>
+  </div>
+
+  <div id="arena" hidden>
+    <div class="arena-head">
+      <div>
+        <small id="arenaComp">Copa Ética y Paz</small>
+        <h2>Duelo en vivo</h2>
+      </div>
+      <div class="arena-tools">
+        <button class="btn btn-ghost sm" onclick="endMatch()">Finalizar</button>
+        <button class="btn btn-ghost sm" onclick="resetScores()">Puntos a cero</button>
+      </div>
+    </div>
+
+    <div class="scoreboard">
+      <div class="score teamA">
+        <span class="avatar" id="avA">A</span>
+        <h3 id="nameA">Equipo A</h3>
+        <div class="pts" id="ptsA">0</div>
+        <div class="pts-label">vidas</div>
+        <div class="subs"><span id="hitsA">0 aciertos</span></div>
+        <div class="lives" id="livesA"></div>
+        <button class="btn btn-scoreA" onclick="answer('A',true)">Acierto · disparar <span class="kbd">Q</span></button>
+      </div>
+      <div class="score-mid">
+        <div class="timer-ring">
+          <svg viewBox="0 0 120 120">
+            <circle cx="60" cy="60" r="52" class="ring-bg"/>
+            <circle cx="60" cy="60" r="52" class="ring-fg" id="ringFg"/>
+          </svg>
+          <div class="timer-num"><b id="timeLeft">30</b><small>seg</small></div>
+        </div>
+        <div class="timer-btns">
+          <button class="btn btn-primary sm" id="btnTimer" onclick="toggleTimer()">Iniciar</button>
+          <button class="btn btn-ghost sm" onclick="resetTimer()">30s</button>
+        </div>
+        <div class="turn" id="turnLabel">Turno: Equipo A</div>
+      </div>
+      <div class="score teamB">
+        <span class="avatar" id="avB">B</span>
+        <h3 id="nameB">Equipo B</h3>
+        <div class="pts" id="ptsB">0</div>
+        <div class="pts-label">vidas</div>
+        <div class="subs"><span id="hitsB">0 aciertos</span></div>
+        <div class="lives" id="livesB"></div>
+        <button class="btn btn-scoreB" onclick="answer('B',true)">Acierto · disparar <span class="kbd">W</span></button>
+      </div>
+    </div>
+
+    <p class="muted center">Teclado: <span class="kbd">Q</span> dispara el Equipo 1 · <span class="kbd">W</span> dispara el Equipo 2</p>
+
+    <div class="card question-card">
+      <div class="q-top">
+        <span class="muted" id="qCount">Pregunta 1</span>
+        <span class="muted" id="qRound">Ronda 0 de 5</span>
+        <span class="muted">Respuesta abierta / oral</span>
+      </div>
+      <p class="q-text" id="qTextLive">Pulsa “Nueva pregunta aleatoria” para empezar.</p>
+      <div class="q-actions">
+        <button class="btn btn-primary" onclick="nextQuestion()">Nueva pregunta aleatoria</button>
+        <button class="btn btn-ghost" onclick="switchTurn()">Cambiar turno</button>
+      </div>
+      <div class="progress"><span id="qProgress" style="width:0%"></span></div>
+    </div>
+
+    <div class="card battle-card">
+      <canvas id="battle" width="640" height="220"></canvas>
+      <div class="triptych">
+        <div>
+          <canvas id="viewA" width="640" height="220"></canvas>
+          <div class="tank-info"><b id="infoNameA">—</b><span id="infoLivesA"></span></div>
+          <div class="lives mini" id="infoPipsA"></div>
+        </div>
+        <div>
+          <canvas id="viewMid" width="640" height="220"></canvas>
+        </div>
+        <div>
+          <canvas id="viewB" width="640" height="220"></canvas>
+          <div class="tank-info"><b id="infoNameB">—</b><span id="infoLivesB"></span></div>
+          <div class="lives mini" id="infoPipsB"></div>
+        </div>
+      </div>
+      <p class="muted center">Vista completa: ambos tanques y la bala siempre visibles · Tiro parabólico al rival</p>
+    </div>
+
+    <div class="card" id="winnerCard" hidden>
+      <h3 id="winnerText">Ganador</h3>
+    </div>
+  </div>
+</section>
+
+<div class="overlay" id="winnerOverlay" hidden>
+  <div class="winner-box">
+    <small>Duelo finalizado</small>
+    <h2 id="winnerBig">Ganador</h2>
+    <p class="muted" id="winnerSub"></p>
+    <button class="btn btn-primary full" onclick="hideWinner()">Aceptar</button>
+  </div>
+</div>
+
+<!-- VISTA 2: EQUIPOS -->
+<section id="view-equipos" class="view wrap" hidden>
+  <div class="section-head">
+    <h2>Equipos</h2>
+    <p>Crea, edita y elimina. Elige un color con la paleta, el código hexadecimal o los tonos sugeridos.</p>
+  </div>
+  <div class="card narrow">
+    <h3 id="teamFormTitle">Crear equipo</h3>
+    <label>Nombre del equipo
+      <input id="teamName" type="text" maxlength="30" placeholder="Ej: Constructores de Paz">
+    </label>
+    <label>Color del equipo</label>
+    <div class="color-row">
+      <input type="color" id="teamColor" value="#1F7A5A" aria-label="Color personalizado">
+      <input type="text" id="teamHex" value="#1F7A5A" maxlength="7" spellcheck="false" aria-label="Código hexadecimal">
+    </div>
+    <div class="colors" id="colorPicker">
+      <button type="button" style="--c:#1F7A5A" data-color="#1F7A5A" class="sel" aria-label="#1F7A5A"></button>
+      <button type="button" style="--c:#1C2B26" data-color="#1C2B26" aria-label="#1C2B26"></button>
+      <button type="button" style="--c:#2E86AB" data-color="#2E86AB" aria-label="#2E86AB"></button>
+      <button type="button" style="--c:#C98A2B" data-color="#C98A2B" aria-label="#C98A2B"></button>
+      <button type="button" style="--c:#B23A3A" data-color="#B23A3A" aria-label="#B23A3A"></button>
+      <button type="button" style="--c:#6D5AC8" data-color="#6D5AC8" aria-label="#6D5AC8"></button>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-primary full" id="teamSubmit" onclick="saveTeam()">Guardar equipo</button>
+      <button class="btn btn-ghost full" id="teamCancel" onclick="cancelTeamEdit()" hidden>Cancelar edición</button>
+    </div>
+  </div>
+  <h3 class="list-title">Equipos registrados (<span id="teamCount">0</span>)</h3>
+  <div class="list" id="teamList"></div>
+</section>
+
+<!-- VISTA 3: PREGUNTAS -->
+<section id="view-preguntas" class="view wrap" hidden>
+  <div class="section-head">
+    <h2>Preguntas abiertas</h2>
+    <p>Crea, edita y elimina preguntas abiertas.</p>
+  </div>
+  <div class="card narrow">
+    <h3 id="qFormTitle">Crear pregunta</h3>
+    <label>Pregunta
+      <textarea id="qText" rows="3" maxlength="280" placeholder="Ej: ¿Qué harías si un compañero hace trampa en una evaluación?"></textarea>
+    </label>
+    <div class="form-actions">
+      <button class="btn btn-primary full" id="qSubmit" onclick="saveQuestion()">Guardar pregunta</button>
+      <button class="btn btn-ghost full" id="qCancel" onclick="cancelQuestionEdit()" hidden>Cancelar edición</button>
+    </div>
+  </div>
+  <h3 class="list-title">Banco de preguntas (<span id="qTotal">0</span>)</h3>
+  <div class="list" id="questionList"></div>
+</section>
+</main>
+
+<footer class="foot-bar" aria-hidden="true"></footer>
+
+<script src="app.js"></script>
+</body>
+</html>
